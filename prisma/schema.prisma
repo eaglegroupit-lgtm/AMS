@@ -1,0 +1,213 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+}
+
+enum OrderStatus {
+  COMPLETED
+  CANCELLED
+  PENDING
+}
+
+enum BannerType {
+  SLIDER
+  OFFER
+  FESTIVAL
+}
+
+enum GalleryCategory {
+  FOOD
+  RESTAURANT
+  KITCHEN
+  EVENTS
+}
+
+enum QRType {
+  MENU
+  WHATSAPP
+  UPI
+  TABLE
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  logs      ActivityLog[]
+}
+
+model RestaurantSettings {
+  id             String   @id @default("default")
+  name           String   @default("Amutha Surabi Restaurant")
+  nameTa         String   @default("அமுதா சுரபி உணவகம்")
+  address        String   @default("123 Temple Ring Road, Madurai, Tamil Nadu 625001")
+  addressTa      String   @default("123 கோவில் ரிங் ரோடு, மதுரை, தமிழ்நாடு 625001")
+  phone          String   @default("+91 98765 43210")
+  whatsapp       String   @default("+91 98765 43210")
+  email          String   @default("info@amuthasurabi.com")
+  openingHours   String   @default("Mon - Sun: 7:00 AM - 11:00 PM")
+  openingHoursTa String   @default("திங்கள் - ஞாயிறு: காலை 7:00 - இரவு 11:00")
+  gstNumber      String   @default("33AAAAA0000A1Z5")
+  logoUrl        String   @default("/logo.png")
+  socialLinks    String   @default("{}") // JSON string for facebook, instagram, twitter
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  nameTa    String
+  slug      String   @unique
+  sortOrder Int      @default(0)
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  foods     Food[]
+}
+
+model Food {
+  id              String      @id @default(cuid())
+  name            String
+  nameTa          String
+  description     String
+  descriptionTa   String
+  price           Float
+  discount        Float       @default(0) // Percentage or flat discount
+  gst             Float       @default(5) // Default GST %
+  isVeg           Boolean     @default(true)
+  spicyLevel      Int         @default(1) // 1 to 5
+  prepTimeMinutes Int         @default(15)
+  isFeatured      Boolean     @default(false)
+  isTodaySpecial  Boolean     @default(false)
+  isAvailable     Boolean     @default(true)
+  categoryId      String
+  category        Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  images          FoodImage[]
+  orderItems      OrderItem[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model FoodImage {
+  id        String   @id @default(cuid())
+  foodId    String
+  url       String
+  isPrimary Boolean  @default(false)
+  food      Food     @relation(fields: [foodId], references: [id], onDelete: Cascade)
+}
+
+model Customer {
+  id         String   @id @default(cuid())
+  name       String
+  phone      String   @unique
+  visitCount Int      @default(1)
+  totalSpend Float    @default(0)
+  lastVisit  DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  orders     Order[]
+}
+
+model Order {
+  id            String        @id @default(cuid())
+  billNumber    String        @unique
+  tableNumber   String?
+  customerName  String
+  customerPhone String
+  subtotal      Float
+  discount      Float         @default(0)
+  gstAmount     Float         @default(0)
+  grandTotal    Float
+  paymentMethod PaymentMethod @default(CASH)
+  status        OrderStatus   @default(COMPLETED)
+  customerId    String?
+  customer      Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items         OrderItem[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  foodId     String?
+  foodName   String
+  foodNameTa String
+  price      Float
+  quantity   Int
+  total      Float
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  food       Food?    @relation(fields: [foodId], references: [id], onDelete: SetNull)
+}
+
+model Banner {
+  id         String     @id @default(cuid())
+  title      String
+  titleTa    String
+  subtitle   String
+  subtitleTa String
+  imageUrl   String
+  type       BannerType @default(SLIDER)
+  autoSlide  Boolean    @default(true)
+  isActive   Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+}
+
+model Gallery {
+  id        String          @id @default(cuid())
+  title     String
+  titleTa   String
+  category  GalleryCategory @default(FOOD)
+  imageUrl  String
+  createdAt DateTime        @default(now())
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  name       String
+  rating     Int      @default(5)
+  comment    String
+  isApproved Boolean  @default(true)
+  createdAt  DateTime @default(now())
+}
+
+model QRCode {
+  id        String   @id @default(cuid())
+  title     String
+  type      QRType   @default(MENU)
+  targetUrl String
+  imagePath String?  // Generated base64 data url or path
+  createdAt DateTime @default(now())
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  details   String
+  createdAt DateTime @default(now())
+}
