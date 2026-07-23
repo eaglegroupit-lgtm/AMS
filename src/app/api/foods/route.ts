@@ -35,9 +35,13 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json(foods);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Fetch foods error:', error);
-    return NextResponse.json({ error: 'Failed to fetch foods' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to fetch foods', 
+      details: error.message || String(error),
+      stack: error.stack
+    }, { status: 500 });
   }
 }
 
